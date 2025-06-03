@@ -81,7 +81,8 @@ const initModel = async () => {
       next();
     });
 
-    User = userConn.model('User', userSchema);
+    // Explicitly set the collection name to 'users'
+    User = userConn.model('User', userSchema, 'users');
   }
   
   return User;

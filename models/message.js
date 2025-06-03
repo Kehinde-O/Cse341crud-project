@@ -60,7 +60,8 @@ const initModel = async () => {
     messageSchema.index({ sender: 1, recipient: 1 });
     messageSchema.index({ createdAt: -1 });
 
-    Message = messageConn.model('Message', messageSchema);
+    // Explicitly set the collection name to 'messages'
+    Message = messageConn.model('Message', messageSchema, 'messages');
   }
   
   return Message;

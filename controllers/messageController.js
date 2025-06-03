@@ -6,6 +6,8 @@ const { initModel: initUserModel } = require('../models/user');
 const getAllMessages = async (req, res, next) => {
   try {
     const Message = await initModel();
+    const User = await initUserModel();
+    
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
@@ -13,14 +15,24 @@ const getAllMessages = async (req, res, next) => {
     const messages = await Message.find({ isDeleted: false })
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit)
-      .populate('sender', 'username firstName lastName')
-      .populate('recipient', 'username firstName lastName');
+      .limit(limit);
+    
+    // Manually populate user references
+    const populatedMessages = await Promise.all(messages.map(async (message) => {
+      const messageObj = message.toObject();
+      const sender = await User.findById(message.sender, 'username firstName lastName');
+      const recipient = await User.findById(message.recipient, 'username firstName lastName');
+      
+      messageObj.sender = sender;
+      messageObj.recipient = recipient;
+      
+      return messageObj;
+    }));
     
     const total = await Message.countDocuments({ isDeleted: false });
     
     res.status(200).json({
-      messages,
+      messages: populatedMessages,
       pagination: {
         total,
         page,
@@ -37,6 +49,8 @@ const getAllMessages = async (req, res, next) => {
 const getMessagesBetweenUsers = async (req, res, next) => {
   try {
     const Message = await initModel();
+    const User = await initUserModel();
+    
     const { userId, otherUserId } = req.params;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
@@ -56,9 +70,19 @@ const getMessagesBetweenUsers = async (req, res, next) => {
     })
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit)
-      .populate('sender', 'username firstName lastName')
-      .populate('recipient', 'username firstName lastName');
+      .limit(limit);
+    
+    // Manually populate user references
+    const populatedMessages = await Promise.all(messages.map(async (message) => {
+      const messageObj = message.toObject();
+      const sender = await User.findById(message.sender, 'username firstName lastName');
+      const recipient = await User.findById(message.recipient, 'username firstName lastName');
+      
+      messageObj.sender = sender;
+      messageObj.recipient = recipient;
+      
+      return messageObj;
+    }));
     
     const total = await Message.countDocuments({
       isDeleted: false,
@@ -69,7 +93,7 @@ const getMessagesBetweenUsers = async (req, res, next) => {
     });
     
     res.status(200).json({
-      messages,
+      messages: populatedMessages,
       pagination: {
         total,
         page,
@@ -86,18 +110,26 @@ const getMessagesBetweenUsers = async (req, res, next) => {
 const getMessageById = async (req, res, next) => {
   try {
     const Message = await initModel();
+    const User = await initUserModel();
+    
     const message = await Message.findOne({ 
       _id: req.params.id,
       isDeleted: false
-    })
-      .populate('sender', 'username firstName lastName')
-      .populate('recipient', 'username firstName lastName');
+    });
     
     if (!message) {
       return res.status(404).json({ message: 'Message not found' });
     }
     
-    res.status(200).json(message);
+    // Manually populate user references
+    const messageObj = message.toObject();
+    const sender = await User.findById(message.sender, 'username firstName lastName');
+    const recipient = await User.findById(message.recipient, 'username firstName lastName');
+    
+    messageObj.sender = sender;
+    messageObj.recipient = recipient;
+    
+    res.status(200).json(messageObj);
   } catch (err) {
     next(err);
   }
@@ -107,15 +139,27 @@ const getMessageById = async (req, res, next) => {
 const createMessage = async (req, res, next) => {
   try {
     const Message = await initModel();
+    const User = await initUserModel();
+    
+    // Verify that sender and recipient exist
+    const sender = await User.findById(req.body.sender);
+    const recipient = await User.findById(req.body.recipient);
+    
+    if (!sender || !recipient) {
+      return res.status(404).json({ 
+        message: !sender ? 'Sender not found' : 'Recipient not found' 
+      });
+    }
+    
     const newMessage = new Message(req.body);
     const result = await newMessage.save();
     
-    // Populate sender and recipient info
-    const message = await Message.findById(result._id)
-      .populate('sender', 'username firstName lastName')
-      .populate('recipient', 'username firstName lastName');
+    // Manually populate sender and recipient info
+    const messageObj = result.toObject();
+    messageObj.sender = await User.findById(result.sender, 'username firstName lastName');
+    messageObj.recipient = await User.findById(result.recipient, 'username firstName lastName');
     
-    res.status(201).json(message);
+    res.status(201).json(messageObj);
   } catch (err) {
     next(err);
   }
@@ -125,6 +169,8 @@ const createMessage = async (req, res, next) => {
 const updateMessage = async (req, res, next) => {
   try {
     const Message = await initModel();
+    const User = await initUserModel();
+    
     // Only allow updating certain fields
     const allowedUpdates = ['content', 'isRead', 'readAt', 'status'];
     const updates = Object.keys(req.body);
@@ -139,15 +185,21 @@ const updateMessage = async (req, res, next) => {
       { _id: req.params.id, isDeleted: false },
       { $set: req.body },
       { new: true, runValidators: true }
-    )
-      .populate('sender', 'username firstName lastName')
-      .populate('recipient', 'username firstName lastName');
+    );
     
     if (!updatedMessage) {
       return res.status(404).json({ message: 'Message not found' });
     }
     
-    res.status(200).json(updatedMessage);
+    // Manually populate user references
+    const messageObj = updatedMessage.toObject();
+    const sender = await User.findById(updatedMessage.sender, 'username firstName lastName');
+    const recipient = await User.findById(updatedMessage.recipient, 'username firstName lastName');
+    
+    messageObj.sender = sender;
+    messageObj.recipient = recipient;
+    
+    res.status(200).json(messageObj);
   } catch (err) {
     next(err);
   }
