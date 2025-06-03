@@ -1,9 +1,11 @@
 const { ObjectId } = require('mongodb');
-const Message = require('../models/message');
+const { initModel } = require('../models/message');
+const { initModel: initUserModel } = require('../models/user');
 
 // Get all messages (with pagination)
 const getAllMessages = async (req, res, next) => {
   try {
+    const Message = await initModel();
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
@@ -34,6 +36,7 @@ const getAllMessages = async (req, res, next) => {
 // Get messages between two users
 const getMessagesBetweenUsers = async (req, res, next) => {
   try {
+    const Message = await initModel();
     const { userId, otherUserId } = req.params;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
@@ -82,6 +85,7 @@ const getMessagesBetweenUsers = async (req, res, next) => {
 // Get a single message by ID
 const getMessageById = async (req, res, next) => {
   try {
+    const Message = await initModel();
     const message = await Message.findOne({ 
       _id: req.params.id,
       isDeleted: false
@@ -102,6 +106,7 @@ const getMessageById = async (req, res, next) => {
 // Create a new message
 const createMessage = async (req, res, next) => {
   try {
+    const Message = await initModel();
     const newMessage = new Message(req.body);
     const result = await newMessage.save();
     
@@ -119,6 +124,7 @@ const createMessage = async (req, res, next) => {
 // Update a message
 const updateMessage = async (req, res, next) => {
   try {
+    const Message = await initModel();
     // Only allow updating certain fields
     const allowedUpdates = ['content', 'isRead', 'readAt', 'status'];
     const updates = Object.keys(req.body);
@@ -150,6 +156,7 @@ const updateMessage = async (req, res, next) => {
 // Delete a message (soft delete)
 const deleteMessage = async (req, res, next) => {
   try {
+    const Message = await initModel();
     const message = await Message.findByIdAndUpdate(
       req.params.id,
       {
@@ -174,6 +181,7 @@ const deleteMessage = async (req, res, next) => {
 // Permanently delete a message (for admin purposes)
 const permanentlyDeleteMessage = async (req, res, next) => {
   try {
+    const Message = await initModel();
     const deletedMessage = await Message.findByIdAndDelete(req.params.id);
     
     if (!deletedMessage) {

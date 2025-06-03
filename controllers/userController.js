@@ -1,10 +1,11 @@
 const { ObjectId } = require('mongodb');
-const User = require('../models/user');
+const { initModel } = require('../models/user');
 const bcrypt = require('bcryptjs');
 
 // Get all users
 const getAllUsers = async (req, res, next) => {
   try {
+    const User = await initModel();
     const users = await User.find({}, { password: 0 });
     res.status(200).json(users);
   } catch (err) {
@@ -15,6 +16,7 @@ const getAllUsers = async (req, res, next) => {
 // Get a single user by ID
 const getUserById = async (req, res, next) => {
   try {
+    const User = await initModel();
     const user = await User.findById(req.params.id, { password: 0 });
     
     if (!user) {
@@ -30,6 +32,7 @@ const getUserById = async (req, res, next) => {
 // Create a new user
 const createUser = async (req, res, next) => {
   try {
+    const User = await initModel();
     const newUser = new User(req.body);
     const result = await newUser.save();
     
@@ -46,6 +49,7 @@ const createUser = async (req, res, next) => {
 // Update a user
 const updateUser = async (req, res, next) => {
   try {
+    const User = await initModel();
     const updates = { ...req.body };
     
     // Handle password update separately to ensure it's hashed
@@ -72,6 +76,7 @@ const updateUser = async (req, res, next) => {
 // Delete a user
 const deleteUser = async (req, res, next) => {
   try {
+    const User = await initModel();
     const deletedUser = await User.findByIdAndDelete(req.params.id);
     
     if (!deletedUser) {
