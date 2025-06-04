@@ -1,6 +1,6 @@
 const { ObjectId } = require('mongodb');
-const { initModel } = require('../models/message');
-const { initModel: initUserModel } = require('../models/user');
+const { initModel } = require('../models/Message');
+const { initModel: initUserModel } = require('../models/User');
 
 // Get all messages (with pagination)
 const getAllMessages = async (req, res, next) => {
