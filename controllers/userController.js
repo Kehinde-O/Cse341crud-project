@@ -1,5 +1,5 @@
 const { ObjectId } = require('mongodb');
-const { initModel } = require('../models/User');
+const { initModel } = require('../models/user');
 const bcrypt = require('bcryptjs');
 
 // Get all users
