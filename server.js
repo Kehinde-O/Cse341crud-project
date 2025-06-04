@@ -14,10 +14,16 @@ dotenv.config();
 
 // Initialize Express app
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 3000;
+
+// Enhanced CORS configuration
+app.use(cors({
+  origin: '*', // Allow all origins
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // Middleware
-app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -35,7 +41,25 @@ connectDB()
 app.use('/api', routes);
 
 // Swagger documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  explorer: true,
+  swaggerOptions: {
+    validatorUrl: null, // Disable validator
+    docExpansion: 'list', // Expand all operations by default
+    persistAuthorization: true // Remember auth values
+  }
+}));
+
+// Add a route to serve the Swagger JSON for Postman import
+app.get('/api-json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
+
+// Add a redirect from root to API docs
+app.get('/', (req, res) => {
+  res.redirect('/api-docs');
+});
 
 // Error handling middleware
 app.use(errorHandler);

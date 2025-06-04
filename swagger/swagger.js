@@ -14,13 +14,13 @@ const options = {
     },
     servers: [
       {
-        url: 'http://localhost:8080/api',
+        url: 'http://localhost:3000/api',
         description: 'Development server',
       },
       {
-        url: 'https://your-production-url.com/api',
-        description: 'Production server',
-      },
+        url: '/api', // Relative URL works better for both local and deployed environments
+        description: 'Current server',
+      }
     ],
     components: {
       schemas: {
