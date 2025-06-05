@@ -19,9 +19,14 @@ const PORT = process.env.PORT || 3000;
 // Enhanced CORS configuration
 app.use(cors({
   origin: '*', // Allow all origins
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  credentials: true,
+  maxAge: 86400 // Cache preflight request for 1 day
 }));
+
+// Handle OPTIONS preflight requests
+app.options('*', cors());
 
 // Middleware
 app.use(bodyParser.json());
@@ -46,13 +51,22 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   swaggerOptions: {
     validatorUrl: null, // Disable validator
     docExpansion: 'list', // Expand all operations by default
-    persistAuthorization: true // Remember auth values
+    persistAuthorization: true, // Remember auth values
+    tryItOutEnabled: true,
+    displayRequestDuration: true,
+    filter: true,
+    requestInterceptor: (request) => {
+      request.headers['X-Requested-With'] = 'XMLHttpRequest';
+      return request;
+    }
   }
 }));
 
 // Add a route to serve the Swagger JSON for Postman import
 app.get('/api-json', (req, res) => {
   res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
   res.send(swaggerSpec);
 });
 

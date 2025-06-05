@@ -14,12 +14,12 @@ const options = {
     },
     servers: [
       {
-        url: 'http://localhost:3000/api',
-        description: 'Development server',
+        url: '/',
+        description: 'Current server (relative path)',
       },
       {
-        url: '/api', // Relative URL works better for both local and deployed environments
-        description: 'Current server',
+        url: 'http://localhost:3000',
+        description: 'Development server (full URL)',
       }
     ],
     components: {
