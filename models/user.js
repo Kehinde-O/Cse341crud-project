@@ -56,7 +56,39 @@ const initModel = async () => {
         default: '',
         maxlength: 200
       },
+      // OAuth fields
+      googleId: {
+        type: String,
+        default: null
+      },
+      authProvider: {
+        type: String,
+        enum: ['local', 'google'],
+        default: 'local'
+      },
+      isEmailVerified: {
+        type: Boolean,
+        default: false
+      },
+      emailVerificationToken: {
+        type: String,
+        default: null
+      },
+      // Session management
+      refreshTokens: [{
+        token: String,
+        createdAt: {
+          type: Date,
+          default: Date.now
+        },
+        expiresAt: Date
+      }],
+      // Timestamps
       createdAt: {
+        type: Date,
+        default: Date.now
+      },
+      updatedAt: {
         type: Date,
         default: Date.now
       },
@@ -70,12 +102,17 @@ const initModel = async () => {
       }]
     });
 
-    // Hash the password before saving
+    // Hash the password before saving and update timestamps
     userSchema.pre('save', async function(next) {
       const user = this;
       
       if (user.isModified('password')) {
         user.password = await bcrypt.hash(user.password, 10);
+      }
+      
+      // Update timestamps
+      if (!user.isNew) {
+        user.updatedAt = new Date();
       }
       
       next();

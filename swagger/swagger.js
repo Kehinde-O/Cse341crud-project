@@ -152,11 +152,11 @@ const options = {
         },
       },
       securitySchemes: {
-        // To be added in Week 04 for OAuth implementation
         bearerAuth: {
           type: 'http',
           scheme: 'bearer',
           bearerFormat: 'JWT',
+          description: 'JWT Authorization header using the Bearer scheme. Example: "Authorization: Bearer {token}"'
         },
       },
     },

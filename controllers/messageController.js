@@ -141,17 +141,34 @@ const createMessage = async (req, res, next) => {
     const Message = await initModel();
     const User = await initUserModel();
     
-    // Verify that sender and recipient exist
-    const sender = await User.findById(req.body.sender);
-    const recipient = await User.findById(req.body.recipient);
+    // Use authenticated user as sender
+    const senderId = req.user._id;
+    const { recipient, content, attachments } = req.body;
     
-    if (!sender || !recipient) {
+    // Verify that recipient exists
+    const recipientUser = await User.findById(recipient);
+    
+    if (!recipientUser) {
       return res.status(404).json({ 
-        message: !sender ? 'Sender not found' : 'Recipient not found' 
+        message: 'Recipient not found' 
       });
     }
     
-    const newMessage = new Message(req.body);
+    // Prevent sending message to self
+    if (senderId.toString() === recipient.toString()) {
+      return res.status(400).json({ 
+        message: 'Cannot send message to yourself' 
+      });
+    }
+    
+    const messageData = {
+      sender: senderId,
+      recipient,
+      content,
+      attachments: attachments || []
+    };
+    
+    const newMessage = new Message(messageData);
     const result = await newMessage.save();
     
     // Manually populate sender and recipient info

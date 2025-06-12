@@ -45,20 +45,15 @@ const validateUser = (req, res, next) => {
 };
 
 const validateMessage = (req, res, next) => {
-  const { sender, recipient, content } = req.body;
+  const { recipient, content } = req.body;
   
   const errors = [];
   
-  // Check required fields
-  if (!sender) errors.push('Sender is required');
+  // Check required fields (sender comes from authentication)
   if (!recipient) errors.push('Recipient is required');
   if (!content) errors.push('Content is required');
   
-  // Validate IDs
-  if (sender && !ObjectId.isValid(sender)) {
-    errors.push('Invalid sender ID format');
-  }
-  
+  // Validate recipient ID
   if (recipient && !ObjectId.isValid(recipient)) {
     errors.push('Invalid recipient ID format');
   }

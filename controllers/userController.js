@@ -50,6 +50,14 @@ const createUser = async (req, res, next) => {
 const updateUser = async (req, res, next) => {
   try {
     const User = await initModel();
+    
+    // Check if user is trying to update their own profile
+    if (req.user._id.toString() !== req.params.id) {
+      return res.status(403).json({ 
+        message: 'Access denied. You can only update your own profile.' 
+      });
+    }
+    
     const updates = { ...req.body };
     
     // Handle password update separately to ensure it's hashed
@@ -77,6 +85,14 @@ const updateUser = async (req, res, next) => {
 const deleteUser = async (req, res, next) => {
   try {
     const User = await initModel();
+    
+    // Check if user is trying to delete their own account
+    if (req.user._id.toString() !== req.params.id) {
+      return res.status(403).json({ 
+        message: 'Access denied. You can only delete your own account.' 
+      });
+    }
+    
     const deletedUser = await User.findByIdAndDelete(req.params.id);
     
     if (!deletedUser) {
