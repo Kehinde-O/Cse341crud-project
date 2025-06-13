@@ -24,10 +24,10 @@ JWT_REFRESH_EXPIRE=7d
 # Session Configuration (REQUIRED)
 SESSION_SECRET=your-session-secret-change-this-in-production
 
-# Google OAuth Configuration (OPTIONAL)
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-GOOGLE_CALLBACK_URL=http://localhost:3000/api/auth/google/callback
+# GitHub OAuth Configuration (OPTIONAL)
+GITHUB_CLIENT_ID=your-github-client-id
+GITHUB_CLIENT_SECRET=your-github-client-secret
+GITHUB_CALLBACK_URL=http://localhost:3000/api/auth/github/callback
 
 # Frontend Configuration
 FRONTEND_URL=http://localhost:3000
@@ -53,16 +53,14 @@ Generate strong secrets using:
 node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 ```
 
-## Google OAuth Setup (Optional)
+## GitHub OAuth Setup (Optional)
 
-If you want to enable Google OAuth login:
+If you want to enable GitHub OAuth login:
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select an existing one
-3. Enable the Google+ API
-4. Create OAuth 2.0 credentials
-5. Add your callback URL: `http://localhost:3000/api/auth/google/callback`
-6. Copy the Client ID and Client Secret to your `.env` file
+1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
+2. Click "New OAuth App"
+3. Set the callback URL: `http://localhost:3000/api/auth/github/callback`
+4. Copy the Client ID and Client Secret to your `.env` file
 
 ## API Endpoints
 
@@ -75,8 +73,8 @@ If you want to enable Google OAuth login:
 - `POST /api/auth/refresh` - Refresh access token
 - `GET /api/auth/profile` - Get user profile (requires authentication)
 - `PUT /api/auth/profile` - Update user profile (requires authentication)
-- `GET /api/auth/google` - Initiate Google OAuth login
-- `GET /api/auth/google/callback` - Google OAuth callback
+- `GET /api/auth/github` - Initiate GitHub OAuth login
+- `GET /api/auth/github/callback` - GitHub OAuth callback
 
 ### Protected Endpoints
 
@@ -167,7 +165,7 @@ POST /api/auth/refresh
 - ✅ Rate limiting on authentication endpoints
 - ✅ Security headers with Helmet
 - ✅ Session management
-- ✅ Google OAuth integration
+- ✅ GitHub OAuth integration
 - ✅ Protected message endpoints
 - ✅ Refresh token system
 - ✅ Input validation and sanitization
@@ -183,9 +181,9 @@ POST /api/auth/refresh
    - Check that you're including the Bearer token in the Authorization header
    - Ensure the token hasn't expired
 
-3. **Google OAuth not working**
-   - Verify your Google OAuth credentials in the `.env` file
-   - Check that your callback URL is correctly configured in Google Cloud Console
+3. **GitHub OAuth not working**
+   - Verify your GitHub OAuth credentials in the `.env` file
+   - Check that your callback URL is correctly configured in GitHub Developer Settings
 
 4. **Rate limiting errors**
    - Wait for the rate limit window to reset (15 minutes)

@@ -1,5 +1,5 @@
 const passport = require('passport');
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const GitHubStrategy = require('passport-github2').Strategy;
 const LocalStrategy = require('passport-local').Strategy;
 const bcrypt = require('bcryptjs');
 const { initModel } = require('../models/user');
@@ -45,47 +45,43 @@ passport.use(new LocalStrategy({
   }
 }));
 
-// Google OAuth Strategy (only if credentials are provided)
-if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-  passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: process.env.GOOGLE_CALLBACK_URL || '/api/auth/google/callback'
+// GitHub OAuth Strategy (only if credentials are provided)
+if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
+  passport.use(new GitHubStrategy({
+    clientID: process.env.GITHUB_CLIENT_ID,
+    clientSecret: process.env.GITHUB_CLIENT_SECRET,
+    callbackURL: process.env.GITHUB_CALLBACK_URL || '/api/auth/github/callback',
+    scope: ['user:email']
   }, async (accessToken, refreshToken, profile, done) => {
     try {
       const User = await initModel();
-      
-      // Check if user already exists with this Google ID
-      let user = await User.findOne({ googleId: profile.id });
-      
+      // Check if user already exists with this GitHub ID
+      let user = await User.findOne({ githubId: profile.id });
       if (user) {
         return done(null, user);
       }
-      
       // Check if user exists with this email
-      user = await User.findOne({ email: profile.emails[0].value });
-      
+      const email = (profile.emails && profile.emails[0] && profile.emails[0].value) || '';
+      user = await User.findOne({ email });
       if (user) {
-        // Link Google account to existing user
-        user.googleId = profile.id;
-        user.profilePicture = user.profilePicture || profile.photos[0]?.value || '';
+        // Link GitHub account to existing user
+        user.githubId = profile.id;
+        user.profilePicture = user.profilePicture || (profile.photos && profile.photos[0] && profile.photos[0].value) || '';
         await user.save();
         return done(null, user);
       }
-      
       // Create new user
       const newUser = new User({
-        googleId: profile.id,
-        username: profile.emails[0].value.split('@')[0] + '_' + Date.now(), // Generate unique username
-        email: profile.emails[0].value,
+        githubId: profile.id,
+        username: profile.username || (email ? email.split('@')[0] : 'github_' + profile.id),
+        email,
         password: 'oauth_user_' + Math.random().toString(36).substring(7), // Random password for OAuth users
-        firstName: profile.name.givenName,
-        lastName: profile.name.familyName,
-        profilePicture: profile.photos[0]?.value || '',
-        authProvider: 'google',
-        isEmailVerified: true // Google accounts are pre-verified
+        firstName: profile.displayName || 'GitHub',
+        lastName: '',
+        profilePicture: (profile.photos && profile.photos[0] && profile.photos[0].value) || '',
+        authProvider: 'github',
+        isEmailVerified: true
       });
-      
       await newUser.save();
       return done(null, newUser);
     } catch (err) {
@@ -93,7 +89,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     }
   }));
 } else {
-  console.log('ℹ️  Google OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to enable Google authentication.');
+  console.log('ℹ️  GitHub OAuth not configured. Set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET to enable GitHub authentication.');
 }
 
 module.exports = passport; 

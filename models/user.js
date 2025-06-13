@@ -61,9 +61,13 @@ const initModel = async () => {
         type: String,
         default: null
       },
+      githubId: {
+        type: String,
+        default: null
+      },
       authProvider: {
         type: String,
-        enum: ['local', 'google'],
+        enum: ['local', 'google', 'github'],
         default: 'local'
       },
       isEmailVerified: {

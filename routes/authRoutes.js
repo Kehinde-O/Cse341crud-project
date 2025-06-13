@@ -326,29 +326,29 @@ router.get('/profile', authenticateToken, authController.getProfile);
  */
 router.put('/profile', authenticateToken, authController.updateProfile);
 
-// Google OAuth routes (only if Google OAuth is configured)
-if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+// GitHub OAuth routes (only if GitHub OAuth is configured)
+if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
   /**
    * @swagger
-   * /api/auth/google:
+   * /api/auth/github:
    *   get:
-   *     summary: Google OAuth login
-   *     description: Initiate Google OAuth authentication
+   *     summary: GitHub OAuth login
+   *     description: Initiate GitHub OAuth authentication
    *     tags: [Authentication]
    *     responses:
    *       302:
-   *         description: Redirect to Google OAuth
+   *         description: Redirect to GitHub OAuth
    */
-  router.get('/google', 
-    passport.authenticate('google', { scope: ['profile', 'email'] })
+  router.get('/github', 
+    passport.authenticate('github', { scope: ['user:email'] })
   );
 
   /**
    * @swagger
-   * /api/auth/google/callback:
+   * /api/auth/github/callback:
    *   get:
-   *     summary: Google OAuth callback
-   *     description: Handle Google OAuth callback and complete authentication
+   *     summary: GitHub OAuth callback
+   *     description: Handle GitHub OAuth callback and complete authentication
    *     tags: [Authentication]
    *     responses:
    *       302:
@@ -356,23 +356,23 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
    *       401:
    *         description: Authentication failed
    */
-  router.get('/google/callback',
-    passport.authenticate('google', { session: false, failureRedirect: '/login' }),
-    authController.googleCallback
+  router.get('/github/callback',
+    passport.authenticate('github', { session: false, failureRedirect: '/login' }),
+    authController.googleCallback // Reuse the same callback handler
   );
 } else {
-  // Provide informational endpoints when Google OAuth is not configured
-  router.get('/google', (req, res) => {
+  // Provide informational endpoints when GitHub OAuth is not configured
+  router.get('/github', (req, res) => {
     res.status(501).json({
-      message: 'Google OAuth not configured',
-      error: 'Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables to enable Google authentication.'
+      message: 'GitHub OAuth not configured',
+      error: 'Set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET environment variables to enable GitHub authentication.'
     });
   });
   
-  router.get('/google/callback', (req, res) => {
+  router.get('/github/callback', (req, res) => {
     res.status(501).json({
-      message: 'Google OAuth not configured',
-      error: 'Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables to enable Google authentication.'
+      message: 'GitHub OAuth not configured',
+      error: 'Set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET environment variables to enable GitHub authentication.'
     });
   });
 }
