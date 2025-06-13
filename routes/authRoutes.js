@@ -350,6 +350,7 @@ router.put('/profile', authenticateToken, authController.updateProfile);
  *                   enum: [session, jwt, none]
  */
 router.get('/status', (req, res) => {
+  // Check session authentication first (priority for browsers)
   if (req.isAuthenticated && req.isAuthenticated() && req.user) {
     res.status(200).json({
       authenticated: true,
@@ -361,14 +362,38 @@ router.get('/status', (req, res) => {
         lastName: req.user.lastName,
         authProvider: req.user.authProvider
       },
-      authMethod: 'session'
+      authMethod: 'session',
+      sessionActive: true,
+      browserReady: true,
+      message: 'Authenticated via session - ready for browser API calls',
+      usage: 'No Authorization header needed for API calls from this browser'
     });
   } else {
-    res.status(200).json({
-      authenticated: false,
-      user: null,
-      authMethod: 'none'
-    });
+    // Check if JWT token is provided
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    
+    if (token) {
+      res.status(200).json({
+        authenticated: false,
+        authMethod: 'jwt-header-detected',
+        message: 'JWT token detected but not validated in status check',
+        suggestion: 'Use protected endpoints to validate JWT token',
+        note: 'This endpoint only checks session authentication'
+      });
+    } else {
+      res.status(200).json({
+        authenticated: false,
+        user: null,
+        authMethod: 'none',
+        sessionActive: false,
+        message: 'Not authenticated',
+        authOptions: {
+          browser: 'Navigate to /api/auth/github for OAuth login',
+          apiClient: 'POST to /api/auth/login to get JWT tokens'
+        }
+      });
+    }
   }
 });
 

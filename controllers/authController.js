@@ -263,10 +263,11 @@ const oauthCallback = async (req, res, next) => {
     });
     
     console.log('✅ OAuth login successful for user:', req.user.username);
+    console.log('🍪 Session established for browser authentication');
     
     // Prepare response with user info
     const response = {
-      message: 'OAuth login successful',
+      message: 'OAuth login successful - Session established',
       user: {
         id: req.user._id,
         username: req.user.username,
@@ -275,7 +276,9 @@ const oauthCallback = async (req, res, next) => {
         lastName: req.user.lastName,
         authProvider: req.user.authProvider
       },
-      sessionActive: true
+      sessionActive: true,
+      authMethod: 'session',
+      browserReady: true
     };
 
     // Only generate JWT tokens if JWT_SECRET is available
@@ -297,16 +300,28 @@ const oauthCallback = async (req, res, next) => {
         // Add tokens to response
         response.accessToken = accessToken;
         response.refreshToken = refreshToken;
-        response.note = 'JWT tokens provided for API access. You can also use session-based authentication.';
+        response.note = 'Session active for browser use. JWT tokens available for API clients.';
+        response.usage = {
+          browser: 'No additional headers needed - session automatically used',
+          apiClient: 'Use Authorization: Bearer ' + accessToken.substring(0, 20) + '...'
+        };
       } catch (tokenError) {
         console.warn('⚠️ Could not generate JWT tokens:', tokenError.message);
         response.note = 'Session authentication active. JWT tokens not available - check JWT_SECRET configuration.';
+        response.usage = {
+          browser: 'No additional headers needed - session automatically used',
+          apiClient: 'JWT not configured - use session-based authentication only'
+        };
       }
     } else {
       response.note = 'Session authentication active. Set JWT_SECRET and JWT_REFRESH_SECRET for API token access.';
+      response.usage = {
+        browser: 'No additional headers needed - session automatically used',
+        apiClient: 'Configure JWT secrets to enable API token authentication'
+      };
     }
     
-    // Return success response
+    // Return success response with detailed usage instructions
     res.status(200).json(response);
   } catch (err) {
     console.error('❌ OAuth callback error:', err);
