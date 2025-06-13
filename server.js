@@ -48,29 +48,65 @@ const limiter = rateLimit({
 
 app.use(limiter);
 
-// Enhanced CORS configuration
-app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || '*', // Allow configured origins or all
+// Enhanced CORS configuration for production
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // In production, be more specific about allowed origins
+    const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [origin];
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
   credentials: true,
   maxAge: 86400 // Cache preflight request for 1 day
-}));
+};
+
+app.use(cors(corsOptions));
 
 // Handle OPTIONS preflight requests
-app.options('*', cors());
+app.options('*', cors(corsOptions));
 
-// Session configuration
-app.use(session({
-  secret: process.env.SESSION_SECRET || '',
+// Trust proxy for production deployment (important for Render, Heroku, etc.)
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
+// Session configuration with production-ready settings
+const sessionConfig = {
+  secret: process.env.SESSION_SECRET || 'fallback-secret-key-change-in-production',
   resave: false,
   saveUninitialized: false,
+  name: 'crud-project-session', // Custom session name
   cookie: {
     secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax' // Important for cross-origin in production
   }
-}));
+};
+
+// Add session store for production (using MongoDB)
+if (process.env.NODE_ENV === 'production' && process.env.MONGODB_URI) {
+  const MongoStore = require('connect-mongo');
+  sessionConfig.store = MongoStore.create({
+    mongoUrl: process.env.MONGODB_URI,
+    touchAfter: 24 * 3600, // lazy session update
+    ttl: 24 * 60 * 60 // 24 hours
+  });
+  console.log('🗄️ Using MongoDB session store for production');
+} else {
+  console.log('🗄️ Using memory session store for development');
+}
+
+app.use(session(sessionConfig));
 
 // Passport middleware
 app.use(passport.initialize());
@@ -120,8 +156,17 @@ app.get('/api-json', (req, res) => {
 
 // Add a redirect from root to API docs
 app.get('/', (req, res) => {
+  // Debug session information
+  console.log('🏠 Root endpoint accessed');
+  console.log('🔍 Session ID:', req.sessionID);
+  console.log('🔍 Session data:', JSON.stringify(req.session, null, 2));
+  console.log('🔍 req.user:', req.user ? req.user.username : 'undefined');
+  console.log('🔍 req.isAuthenticated():', req.isAuthenticated ? req.isAuthenticated() : 'function not available');
+  console.log('🔍 Cookie header:', req.headers.cookie);
+  
   if (req.isAuthenticated && req.isAuthenticated() && req.user) {
     // User is logged in
+    console.log('✅ User is authenticated, showing logged-in UI');
     res.send(`
       <!DOCTYPE html>
       <html>
@@ -134,6 +179,7 @@ app.get('/', (req, res) => {
             .links { margin-top: 30px; }
             .links a { margin: 0 10px; padding: 10px 20px; text-decoration: none; background-color: #007bff; color: white; border-radius: 5px; }
             .links a:hover { background-color: #0056b3; }
+            .debug { margin-top: 20px; padding: 10px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 5px; font-size: 12px; }
           </style>
         </head>
         <body>
@@ -147,11 +193,18 @@ app.get('/', (req, res) => {
             <a href="/api/users">View Users</a>
             <a href="/api/messages">View Messages</a>
           </div>
+          <div class="debug">
+            <strong>Debug Info:</strong><br>
+            Session ID: ${req.sessionID}<br>
+            User ID: ${req.user._id}<br>
+            Auth Provider: ${req.user.authProvider}
+          </div>
         </body>
       </html>
     `);
   } else {
     // User is not logged in
+    console.log('❌ User is not authenticated, showing logged-out UI');
     res.send(`
       <!DOCTYPE html>
       <html>
@@ -164,6 +217,7 @@ app.get('/', (req, res) => {
             .links { margin-top: 30px; }
             .links a { margin: 0 10px; padding: 10px 20px; text-decoration: none; background-color: #007bff; color: white; border-radius: 5px; }
             .links a:hover { background-color: #0056b3; }
+            .debug { margin-top: 20px; padding: 10px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 5px; font-size: 12px; }
           </style>
         </head>
         <body>
@@ -176,6 +230,12 @@ app.get('/', (req, res) => {
             <a href="/api-docs">API Documentation</a>
             <a href="/api/users">View Users (Read Only)</a>
             <a href="/api/messages">View Messages (Read Only)</a>
+          </div>
+          <div class="debug">
+            <strong>Debug Info:</strong><br>
+            Session ID: ${req.sessionID || 'No session'}<br>
+            Environment: ${process.env.NODE_ENV || 'development'}<br>
+            Has Cookie: ${req.headers.cookie ? 'Yes' : 'No'}
           </div>
         </body>
       </html>

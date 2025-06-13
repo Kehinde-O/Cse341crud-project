@@ -15,12 +15,26 @@ const oauthCallback = async (req, res, next) => {
     }
 
     console.log('✅ OAuth successful for user:', req.user.username);
+    console.log('🔍 Session ID:', req.sessionID);
+    console.log('🔍 Session before storing user:', JSON.stringify(req.session, null, 2));
     
     // Store user in session for browser-based authentication
     req.session.user = req.user;
     
-    console.log('💾 User stored in session, redirecting to home');
-    res.redirect('/');
+    // Force session save to ensure it's persisted
+    req.session.save((err) => {
+      if (err) {
+        console.error('❌ Session save error:', err);
+        return res.redirect('/?error=session_save_failed');
+      }
+      
+      console.log('💾 User stored in session successfully');
+      console.log('🔍 Session after storing user:', JSON.stringify(req.session, null, 2));
+      console.log('🔍 Cookie settings:', req.session.cookie);
+      console.log('🏠 Redirecting to home');
+      
+      res.redirect('/');
+    });
   } catch (error) {
     console.error('❌ OAuth callback error:', error);
     res.redirect('/?error=oauth_error');
