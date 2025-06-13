@@ -326,6 +326,52 @@ router.get('/profile', authenticateToken, authController.getProfile);
  */
 router.put('/profile', authenticateToken, authController.updateProfile);
 
+/**
+ * @swagger
+ * /api/auth/status:
+ *   get:
+ *     summary: Check authentication status
+ *     description: Check if user is authenticated via session or token
+ *     tags: [Authentication]
+ *     responses:
+ *       200:
+ *         description: Authentication status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 authenticated:
+ *                   type: boolean
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *                 authMethod:
+ *                   type: string
+ *                   enum: [session, jwt, none]
+ */
+router.get('/status', (req, res) => {
+  if (req.isAuthenticated && req.isAuthenticated() && req.user) {
+    res.status(200).json({
+      authenticated: true,
+      user: {
+        id: req.user._id,
+        username: req.user.username,
+        email: req.user.email,
+        firstName: req.user.firstName,
+        lastName: req.user.lastName,
+        authProvider: req.user.authProvider
+      },
+      authMethod: 'session'
+    });
+  } else {
+    res.status(200).json({
+      authenticated: false,
+      user: null,
+      authMethod: 'none'
+    });
+  }
+});
+
 // GitHub OAuth routes (only if GitHub OAuth is configured)
 if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
   /**

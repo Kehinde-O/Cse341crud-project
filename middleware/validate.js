@@ -17,7 +17,7 @@ const validateUser = (req, res, next) => {
   if (!email) errors.push('Email is required');
   if (!password) errors.push('Password is required');
   if (!firstName) errors.push('First name is required');
-  if (!lastName) errors.push('Last name is required');
+  // lastName is optional
   
   // Validate username format
   if (username && (username.length < 3 || username.length > 30)) {

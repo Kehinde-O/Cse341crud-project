@@ -1,16 +1,24 @@
 const jwt = require('jsonwebtoken');
 const { initModel } = require('../models/user');
 
-// Middleware to verify JWT token
+// Middleware to verify JWT token or session
 const authenticateToken = async (req, res, next) => {
   try {
+    // First, check if user is authenticated via session (for OAuth users)
+    if (req.isAuthenticated && req.isAuthenticated() && req.user) {
+      // User is authenticated via session (GitHub OAuth)
+      console.log('✅ User authenticated via session:', req.user.username);
+      return next();
+    }
+
+    // Otherwise, check for JWT token
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
     if (!token) {
       return res.status(401).json({ 
-        message: 'Access token required',
-        error: 'No token provided'
+        message: 'Access token or login session required',
+        error: 'No token provided and not logged in via OAuth'
       });
     }
 
@@ -30,6 +38,7 @@ const authenticateToken = async (req, res, next) => {
 
     // Add user to request object
     req.user = user;
+    console.log('✅ User authenticated via JWT:', user.username);
     next();
   } catch (err) {
     if (err.name === 'JsonWebTokenError') {
@@ -51,9 +60,16 @@ const authenticateToken = async (req, res, next) => {
   }
 };
 
-// Middleware for optional authentication (doesn't fail if no token)
+// Middleware for optional authentication (doesn't fail if no token or session)
 const optionalAuth = async (req, res, next) => {
   try {
+    // First, check if user is authenticated via session
+    if (req.isAuthenticated && req.isAuthenticated() && req.user) {
+      console.log('📝 Optional auth: User found in session:', req.user.username);
+      return next();
+    }
+
+    // Otherwise, check for JWT token
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
@@ -63,6 +79,7 @@ const optionalAuth = async (req, res, next) => {
       const user = await User.findById(decoded.userId).select('-password');
       if (user) {
         req.user = user;
+        console.log('📝 Optional auth: User found via JWT:', user.username);
       }
     }
     next();

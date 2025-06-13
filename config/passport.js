@@ -70,14 +70,20 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
         await user.save();
         return done(null, user);
       }
+      // Parse name from displayName or use fallbacks
+      const displayName = profile.displayName || profile.username || 'GitHub User';
+      const nameParts = displayName.split(' ');
+      const firstName = nameParts[0] || 'GitHub';
+      const lastName = nameParts.slice(1).join(' ') || 'User';
+      
       // Create new user
       const newUser = new User({
         githubId: profile.id,
         username: profile.username || (email ? email.split('@')[0] : 'github_' + profile.id),
         email,
         password: 'oauth_user_' + Math.random().toString(36).substring(7), // Random password for OAuth users
-        firstName: profile.displayName || 'GitHub',
-        lastName: '',
+        firstName,
+        lastName,
         profilePicture: (profile.photos && profile.photos[0] && profile.photos[0].value) || '',
         authProvider: 'github',
         isEmailVerified: true

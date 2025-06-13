@@ -246,32 +246,55 @@ const updateProfile = async (req, res, next) => {
   }
 };
 
-// Google OAuth success
-const googleCallback = async (req, res, next) => {
+// OAuth success callback (works for GitHub, Google, etc.)
+const oauthCallback = async (req, res, next) => {
   try {
-    // Generate tokens for OAuth user
+    // Update user's last active time
+    const User = await initModel();
+    await User.findByIdAndUpdate(req.user._id, {
+      lastActive: new Date()
+    });
+    
+    // Generate tokens for OAuth user (optional - user can use session instead)
     const accessToken = generateToken(req.user._id);
     const refreshToken = generateRefreshToken(req.user._id);
     
     // Save refresh token
-    const User = await initModel();
     await User.findByIdAndUpdate(req.user._id, {
       $push: {
         refreshTokens: {
           token: refreshToken,
           expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
         }
-      },
-      lastActive: new Date()
+      }
     });
     
-    // Redirect to frontend with tokens (you can customize this URL)
-    const frontendURL = process.env.FRONTEND_URL || 'http://localhost:3000';
-    res.redirect(`${frontendURL}/auth/success?token=${accessToken}&refresh=${refreshToken}`);
+    console.log('✅ OAuth login successful for user:', req.user.username);
+    
+    // Return success response with user info and optional tokens
+    // User is now authenticated via session and can use protected routes
+    res.status(200).json({
+      message: 'OAuth login successful',
+      user: {
+        id: req.user._id,
+        username: req.user.username,
+        email: req.user.email,
+        firstName: req.user.firstName,
+        lastName: req.user.lastName,
+        authProvider: req.user.authProvider
+      },
+      sessionActive: true,
+      // Optional tokens for API access
+      accessToken,
+      refreshToken
+    });
   } catch (err) {
     next(err);
   }
 };
+
+// Keep the old name for backward compatibility
+const googleCallback = oauthCallback;
 
 module.exports = {
   register,
@@ -281,5 +304,6 @@ module.exports = {
   refreshToken,
   getProfile,
   updateProfile,
-  googleCallback
+  oauthCallback,
+  googleCallback // Keep for backward compatibility
 }; 

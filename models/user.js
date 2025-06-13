@@ -44,8 +44,9 @@ const initModel = async () => {
       },
       lastName: {
         type: String,
-        required: true,
-        trim: true
+        required: false,
+        trim: true,
+        default: ''
       },
       profilePicture: {
         type: String,
