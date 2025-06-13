@@ -8,7 +8,7 @@ const { authenticateToken, optionalAuth } = require('../middleware/auth');
  * @swagger
  * tags:
  *   name: Messages
- *   description: Message management endpoints
+ *   description: Message management endpoints (Read operations public, Write operations require authentication)
  */
 
 /**
@@ -16,10 +16,8 @@ const { authenticateToken, optionalAuth } = require('../middleware/auth');
  * /api/messages:
  *   get:
  *     summary: Get all messages
- *     description: Retrieve a list of all messages with pagination (requires authentication)
+ *     description: Retrieve a list of all messages with pagination (public access)
  *     tags: [Messages]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: page
@@ -36,22 +34,18 @@ const { authenticateToken, optionalAuth } = require('../middleware/auth');
  *     responses:
  *       200:
  *         description: A list of messages
- *       401:
- *         description: Unauthorized - Authentication required
  *       500:
  *         description: Server error
  */
-router.get('/', authenticateToken, messageController.getAllMessages);
+router.get('/', optionalAuth, messageController.getAllMessages);
 
 /**
  * @swagger
  * /api/messages/between/{userId}/{otherUserId}:
  *   get:
  *     summary: Get messages between two users
- *     description: Retrieve messages exchanged between two users (requires authentication)
+ *     description: Retrieve messages exchanged between two users (public access)
  *     tags: [Messages]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: userId
@@ -82,22 +76,18 @@ router.get('/', authenticateToken, messageController.getAllMessages);
  *         description: A list of messages between the two users
  *       400:
  *         description: Invalid user ID format
- *       401:
- *         description: Unauthorized - Authentication required
  *       500:
  *         description: Server error
  */
-router.get('/between/:userId/:otherUserId', authenticateToken, messageController.getMessagesBetweenUsers);
+router.get('/between/:userId/:otherUserId', optionalAuth, messageController.getMessagesBetweenUsers);
 
 /**
  * @swagger
  * /api/messages/{id}:
  *   get:
  *     summary: Get a message by ID
- *     description: Retrieve a single message by its ID (requires authentication)
+ *     description: Retrieve a single message by its ID (public access)
  *     tags: [Messages]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -108,24 +98,20 @@ router.get('/between/:userId/:otherUserId', authenticateToken, messageController
  *     responses:
  *       200:
  *         description: Message details
- *       401:
- *         description: Unauthorized - Authentication required
  *       404:
  *         description: Message not found
  *       500:
  *         description: Server error
  */
-router.get('/:id', authenticateToken, validateId, messageController.getMessageById);
+router.get('/:id', optionalAuth, validateId, messageController.getMessageById);
 
 /**
  * @swagger
  * /api/messages:
  *   post:
  *     summary: Create a new message
- *     description: Send a new message from authenticated user to another user
+ *     description: Send a new message from authenticated user to another user (requires authentication)
  *     tags: [Messages]
- *     security:
- *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -166,8 +152,6 @@ router.post('/', authenticateToken, validateMessage, messageController.createMes
  *     summary: Update a message
  *     description: Update a message's content or status (requires authentication)
  *     tags: [Messages]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -203,6 +187,8 @@ router.post('/', authenticateToken, validateMessage, messageController.createMes
  *         description: Invalid input data
  *       401:
  *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Can only update your own messages
  *       404:
  *         description: Message not found
  *       500:
@@ -215,10 +201,8 @@ router.put('/:id', authenticateToken, validateId, messageController.updateMessag
  * /api/messages/{id}:
  *   delete:
  *     summary: Delete a message
- *     description: Soft delete a message by marking it as deleted (requires authentication)
+ *     description: Delete a message by its ID (requires authentication)
  *     tags: [Messages]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -231,6 +215,8 @@ router.put('/:id', authenticateToken, validateId, messageController.updateMessag
  *         description: Message deleted successfully
  *       401:
  *         description: Unauthorized - Authentication required
+ *       403:
+ *         description: Forbidden - Can only delete your own messages
  *       404:
  *         description: Message not found
  *       500:

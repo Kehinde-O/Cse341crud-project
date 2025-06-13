@@ -120,7 +120,67 @@ app.get('/api-json', (req, res) => {
 
 // Add a redirect from root to API docs
 app.get('/', (req, res) => {
-  res.redirect('/api-docs');
+  if (req.isAuthenticated && req.isAuthenticated() && req.user) {
+    // User is logged in
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Authentication Status</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 40px; text-align: center; }
+            .status { padding: 20px; border-radius: 8px; margin: 20px 0; }
+            .logged-in { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+            .links { margin-top: 30px; }
+            .links a { margin: 0 10px; padding: 10px 20px; text-decoration: none; background-color: #007bff; color: white; border-radius: 5px; }
+            .links a:hover { background-color: #0056b3; }
+          </style>
+        </head>
+        <body>
+          <h1>CRUD Project</h1>
+          <div class="status logged-in">
+            <h2>✅ Logged in as "${req.user.displayName || req.user.username}"</h2>
+          </div>
+          <div class="links">
+            <a href="/api-docs">API Documentation</a>
+            <a href="/api/auth/logout">Logout</a>
+            <a href="/api/users">View Users</a>
+            <a href="/api/messages">View Messages</a>
+          </div>
+        </body>
+      </html>
+    `);
+  } else {
+    // User is not logged in
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Authentication Status</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 40px; text-align: center; }
+            .status { padding: 20px; border-radius: 8px; margin: 20px 0; }
+            .logged-out { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+            .links { margin-top: 30px; }
+            .links a { margin: 0 10px; padding: 10px 20px; text-decoration: none; background-color: #007bff; color: white; border-radius: 5px; }
+            .links a:hover { background-color: #0056b3; }
+          </style>
+        </head>
+        <body>
+          <h1>CRUD Project</h1>
+          <div class="status logged-out">
+            <h2>❌ You are not logged in</h2>
+          </div>
+          <div class="links">
+            <a href="/api/auth/github">Login with GitHub</a>
+            <a href="/api-docs">API Documentation</a>
+            <a href="/api/users">View Users (Read Only)</a>
+            <a href="/api/messages">View Messages (Read Only)</a>
+          </div>
+        </body>
+      </html>
+    `);
+  }
 });
 
 // Error handling middleware
