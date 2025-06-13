@@ -385,9 +385,16 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
    *       302:
    *         description: Redirect to GitHub OAuth
    */
-  router.get('/github', 
-    passport.authenticate('github', { scope: ['user:email'] })
-  );
+  router.get('/github', (req, res, next) => {
+    console.log('🚀 Initiating GitHub OAuth...');
+    if (!process.env.GITHUB_CLIENT_ID || !process.env.GITHUB_CLIENT_SECRET) {
+      return res.status(500).json({
+        message: 'GitHub OAuth configuration error',
+        error: 'GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET must be configured'
+      });
+    }
+    passport.authenticate('github', { scope: ['user:email'] })(req, res, next);
+  });
 
   /**
    * @swagger
@@ -403,8 +410,23 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
    *         description: Authentication failed
    */
   router.get('/github/callback',
-    passport.authenticate('github', { session: false, failureRedirect: '/login' }),
-    authController.googleCallback // Reuse the same callback handler
+    (req, res, next) => {
+      passport.authenticate('github', { 
+        failureRedirect: '/login',
+        failureMessage: true
+      })(req, res, (err) => {
+        if (err) {
+          console.error('❌ GitHub OAuth authentication error:', err);
+          return res.status(500).json({
+            message: 'GitHub OAuth authentication failed',
+            error: err.message,
+            details: 'Check your GitHub OAuth configuration (Client ID, Client Secret, and Callback URL)'
+          });
+        }
+        next();
+      });
+    },
+    authController.oauthCallback
   );
 } else {
   // Provide informational endpoints when GitHub OAuth is not configured

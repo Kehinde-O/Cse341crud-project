@@ -91,6 +91,9 @@ const optionalAuth = async (req, res, next) => {
 
 // Generate JWT token
 const generateToken = (userId) => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable must be set to generate access tokens');
+  }
   return jwt.sign(
     { userId: userId },
     process.env.JWT_SECRET,
@@ -100,6 +103,9 @@ const generateToken = (userId) => {
 
 // Generate refresh token
 const generateRefreshToken = (userId) => {
+  if (!process.env.JWT_REFRESH_SECRET) {
+    throw new Error('JWT_REFRESH_SECRET environment variable must be set to generate refresh tokens');
+  }
   return jwt.sign(
     { userId: userId, type: 'refresh' },
     process.env.JWT_REFRESH_SECRET,

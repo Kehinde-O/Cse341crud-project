@@ -47,6 +47,8 @@ passport.use(new LocalStrategy({
 
 // GitHub OAuth Strategy (only if credentials are provided)
 if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
+  console.log('🔧 Configuring GitHub OAuth with callback URL:', process.env.GITHUB_CALLBACK_URL || '/api/auth/github/callback');
+  
   passport.use(new GitHubStrategy({
     clientID: process.env.GITHUB_CLIENT_ID,
     clientSecret: process.env.GITHUB_CLIENT_SECRET,

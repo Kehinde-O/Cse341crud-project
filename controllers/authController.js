@@ -249,31 +249,23 @@ const updateProfile = async (req, res, next) => {
 // OAuth success callback (works for GitHub, Google, etc.)
 const oauthCallback = async (req, res, next) => {
   try {
+    if (!req.user) {
+      return res.status(400).json({
+        message: 'OAuth authentication failed',
+        error: 'No user data received from OAuth provider'
+      });
+    }
+
     // Update user's last active time
     const User = await initModel();
     await User.findByIdAndUpdate(req.user._id, {
       lastActive: new Date()
     });
     
-    // Generate tokens for OAuth user (optional - user can use session instead)
-    const accessToken = generateToken(req.user._id);
-    const refreshToken = generateRefreshToken(req.user._id);
-    
-    // Save refresh token
-    await User.findByIdAndUpdate(req.user._id, {
-      $push: {
-        refreshTokens: {
-          token: refreshToken,
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-        }
-      }
-    });
-    
     console.log('✅ OAuth login successful for user:', req.user.username);
     
-    // Return success response with user info and optional tokens
-    // User is now authenticated via session and can use protected routes
-    res.status(200).json({
+    // Prepare response with user info
+    const response = {
       message: 'OAuth login successful',
       user: {
         id: req.user._id,
@@ -283,13 +275,45 @@ const oauthCallback = async (req, res, next) => {
         lastName: req.user.lastName,
         authProvider: req.user.authProvider
       },
-      sessionActive: true,
-      // Optional tokens for API access
-      accessToken,
-      refreshToken
-    });
+      sessionActive: true
+    };
+
+    // Only generate JWT tokens if JWT_SECRET is available
+    if (process.env.JWT_SECRET && process.env.JWT_REFRESH_SECRET) {
+      try {
+        const accessToken = generateToken(req.user._id);
+        const refreshToken = generateRefreshToken(req.user._id);
+        
+        // Save refresh token
+        await User.findByIdAndUpdate(req.user._id, {
+          $push: {
+            refreshTokens: {
+              token: refreshToken,
+              expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+            }
+          }
+        });
+        
+        // Add tokens to response
+        response.accessToken = accessToken;
+        response.refreshToken = refreshToken;
+        response.note = 'JWT tokens provided for API access. You can also use session-based authentication.';
+      } catch (tokenError) {
+        console.warn('⚠️ Could not generate JWT tokens:', tokenError.message);
+        response.note = 'Session authentication active. JWT tokens not available - check JWT_SECRET configuration.';
+      }
+    } else {
+      response.note = 'Session authentication active. Set JWT_SECRET and JWT_REFRESH_SECRET for API token access.';
+    }
+    
+    // Return success response
+    res.status(200).json(response);
   } catch (err) {
-    next(err);
+    console.error('❌ OAuth callback error:', err);
+    res.status(500).json({
+      message: 'OAuth authentication error',
+      error: err.message
+    });
   }
 };
 
